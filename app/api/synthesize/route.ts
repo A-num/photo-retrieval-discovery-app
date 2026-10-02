@@ -22,7 +22,7 @@ export async function POST() {
   }
 }
 
-/** Restore the pre-computed demo insights. */
+/** Discard regenerated insights and go back to the starting hypotheses. */
 export async function DELETE() {
   await saveProblems(undefined);
   return NextResponse.json({ ok: true });

@@ -13,7 +13,7 @@ npm install
 npm run dev          # http://localhost:3000
 ```
 
-The app works immediately with no API key, using the bundled demo dataset.
+The app contains only real, collected data. A fresh checkout starts empty: collect and analyze data (below) to populate it.
 
 To enable Claude analysis (for uploaded CSVs, open-ended Ask AI questions, and "Regenerate insights"):
 
@@ -43,7 +43,7 @@ npm run collect:reddit        # needs REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET in
 npm run analyze -- data/real/app-store-reviews.csv data/real/community-threads.csv
 ```
 
-`npm run analyze` runs files of any size through the pipeline (the upload page caps Claude mode at 200 rows). Then uncheck **Include demo data** on the Data page so every page shows real data only.
+`npm run analyze` runs files of any size through the pipeline (the upload page caps Claude mode at 200 rows).
 
 Without `ANTHROPIC_API_KEY`, real data is analyzed with keyword rules. In a hand-checked sample of App Store reviews, those rules were right only 35–40% of the time about which reviews describe a retrieval problem, and the app shows a warning while that's the case. Use Claude for findings you intend to present.
 
@@ -52,14 +52,14 @@ Without `ANTHROPIC_API_KEY`, real data is analyzed with keyword rules. In a hand
 - **Dashboard**: headline metrics, what users remember, where retrieval breaks, top problems, and opportunity areas.
 - **Problems**: each problem cluster with its surface complaint vs underlying problem, what users remember and forget, example searches, why retrieval fails, workarounds, and 3–5 pieces of original evidence.
 - **Conversations**: a searchable table filterable by source, asset type, failure, outcome and problem. Each row opens the full analysis.
-- **Ask AI**: a research assistant that answers only from the dataset, with supporting conversations and sources. It says so when the evidence is insufficient.
-- **Data**: the demo dataset summary, CSV upload (`source, sourceUrl, date, title, text, rating`; only `text` is required), and removal of uploaded batches.
+- **Ask AI**: a chat-style research analyst. Each answer is a few sentences of analysis with up to 4 key numbers, a confidence level, and how many conversations it rests on. Source quotes and the analysis steps are tucked behind toggles. Follow-up questions keep the context, and it says so when the evidence is insufficient.
+- **Data**: a summary of the collected dataset, collection commands, CSV upload (`source, sourceUrl, date, title, text, rating`; only `text` is required), and removal of uploaded batches.
 
 Content is labeled throughout as **USER EVIDENCE** (original text) or **AI ANALYSIS** (generated).
 
-## Demo data
+## Problem hypotheses
 
-The 110 conversations in `data/demo-conversations.ts` are **synthetic**: written for this prototype, not real users, with no source links. 101 are retrieval-related and 9 are control cases that should be screened out. Each carries a hand-authored reference analysis so the app runs without an API key.
+`data/problem-clusters.ts` holds 8 starting hypotheses for the problem clusters (for example, "users remember the event, but not the metadata"). They were written before any evidence was analyzed, and they're labeled **hypothesis** in the UI. Every count, chart and quote comes from collected data. With a Claude key, **Regenerate insights** on the Dashboard rewrites the clusters from the real evidence.
 
 ## How the analysis works
 
@@ -73,7 +73,7 @@ Raw conversation
 ```
 
 - `lib/ai/pipeline.ts` runs these steps. With `ANTHROPIC_API_KEY`, each step is a Claude call with schema-validated structured output (`lib/ai/client.ts`). Without a key, or if a call fails, `lib/ai/heuristic.ts` runs the same steps with keyword rules at lower confidence.
-- `lib/ai/ask.ts` handles Ask AI. With a key, Claude answers from the full dataset (prompt-cached), and any conversation IDs it cites that aren't in the dataset are dropped. Without a key, a local engine parses the question (topic, forgotten-cue, intent) and aggregates over the analyses.
+- Ask AI with a key is an agent (`lib/ai/research-agent.ts`, SDK tool runner). Claude calls deterministic query tools from `lib/ai/research-tools.ts` (`dataset_overview`, `count_conversations`, `search_conversations`, `get_conversations`), so every number comes from code rather than the model's arithmetic, then submits a structured brief answer. Citations are kept only if a tool actually returned that conversation. Without a key, `lib/ai/ask.ts` answers with a rules engine (topic, forgotten cue and intent) over the analyses, with no follow-up context.
 - `lib/insights.ts` holds the pure aggregation behind every chart and problem page.
 - `lib/store.ts` keeps uploads and regenerated insights in `.data/store.json`. It is the one module to swap for Supabase/Postgres.
 
@@ -84,7 +84,7 @@ Model: `claude-opus-5` by default (override with `ANTHROPIC_MODEL`). Refused req
 ```
 app/          pages + API routes (/api/import, /api/ask, /api/synthesize)
 components/   UI (shadcn/ui in components/ui, Recharts in components/charts)
-data/         synthetic demo dataset + pre-computed problem clusters
+data/         problem hypotheses, source lists and templates; collected CSVs in data/real/ (git-ignored)
 lib/ai/       pipeline, Claude client, local analyzer, Ask AI, synthesis
 prompts/      modular prompts, one per pipeline stage / research dimension
 types/        data model

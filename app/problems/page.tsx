@@ -1,7 +1,7 @@
 import { getDataset } from "@/lib/store";
 import { summarizeAllProblems } from "@/lib/insights";
 import { ProblemCard } from "@/components/problem-card";
-import { AiAnalysisLabel, DatasetBanner } from "@/components/labels";
+import { AiAnalysisLabel, DatasetBanner, EmptyDataset } from "@/components/labels";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +9,15 @@ export default async function ProblemsPage() {
   const ds = await getDataset();
   const problems = summarizeAllProblems(ds);
   const unassigned = Object.values(ds.analyses).filter((a) => a.retrievalRelevant && !a.problemId).length;
+
+  if (ds.conversations.length === 0) {
+    return (
+      <>
+        <h1 className="mb-6 text-2xl font-semibold tracking-tight">Retrieval problems</h1>
+        <EmptyDataset />
+      </>
+    );
+  }
 
   return (
     <>

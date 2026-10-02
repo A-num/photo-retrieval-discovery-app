@@ -4,7 +4,7 @@ import { dashboardStats, summarizeAllProblems, MIN_EVIDENCE_FOR_OPPORTUNITY } fr
 import { hasClaude } from "@/lib/ai/client";
 import { BarListChart } from "@/components/charts/bar-list-chart";
 import { ProblemCard } from "@/components/problem-card";
-import { AiAnalysisLabel, DatasetBanner, SectionTitle } from "@/components/labels";
+import { AiAnalysisLabel, DatasetBanner, EmptyDataset, SectionTitle } from "@/components/labels";
 import { RegenerateInsights } from "@/components/regenerate-insights";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +24,16 @@ export default async function DashboardPage() {
   const stats = dashboardStats(ds);
   const problems = summarizeAllProblems(ds).filter((p) => p.evidenceCount > 0);
   const opportunities = problems.filter((p) => p.evidenceCount >= MIN_EVIDENCE_FOR_OPPORTUNITY);
-  const generatedBy = ds.problems.some((p) => p.generatedBy === "claude") ? "claude" : "demo-precomputed";
+  const generatedBy = ds.problems.some((p) => p.generatedBy === "claude") ? "claude" : "hypothesis";
+
+  if (ds.conversations.length === 0) {
+    return (
+      <>
+        <h1 className="mb-6 text-2xl font-semibold tracking-tight">What are users struggling with?</h1>
+        <EmptyDataset />
+      </>
+    );
+  }
 
   return (
     <>

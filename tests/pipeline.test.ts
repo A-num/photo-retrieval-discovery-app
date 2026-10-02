@@ -1,10 +1,8 @@
 import { describe, expect, it, beforeEach } from "vitest";
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { heuristicAnalyze, extractSearchAttempt } from "@/lib/ai/heuristic";
 import { analyzeConversations } from "@/lib/ai/pipeline";
 import { parseConversationsCsv } from "@/lib/csv";
-import { DEMO_PROBLEMS } from "@/data/problem-clusters";
+import { PROBLEM_HYPOTHESES } from "@/data/problem-clusters";
 import type { Conversation } from "@/types";
 
 const conv = (text: string, title?: string): Conversation => ({ id: "t1", source: "Test", text, title, dataset: "test" });
@@ -52,7 +50,7 @@ describe("heuristic analyzer", () => {
 describe("pipeline without API key", () => {
   it("analyzes every conversation with the local analyzer", async () => {
     const convs = [conv("Can't find the screenshot of my ticket, searched 'ticket'."), { ...conv("Love the editor!"), id: "t2" }];
-    const res = await analyzeConversations(convs, DEMO_PROBLEMS);
+    const res = await analyzeConversations(convs, PROBLEM_HYPOTHESES);
     expect(res.mode).toBe("heuristic");
     expect(res.analyses.map((a) => a.conversationId)).toEqual(["t1", "t2"]);
     expect(res.analyses.map((a) => a.retrievalRelevant)).toEqual([true, false]);
@@ -60,13 +58,17 @@ describe("pipeline without API key", () => {
 });
 
 describe("CSV import", () => {
-  it("parses the bundled sample CSV", () => {
-    const csv = readFileSync(path.join(__dirname, "../public/sample-conversations.csv"), "utf8");
+  it("parses a CSV in the expected format", () => {
+    const csv = [
+      "source,sourceUrl,date,title,text,rating",
+      'App Store,,2026-09-20,Search broke,"Date searches return zero results, again",1',
+      "Reddit,https://www.reddit.com/r/googlephotos/comments/x/,2025-01-01,,can't find my screenshot,",
+    ].join("\n");
     const r = parseConversationsCsv(csv, "b1");
-    expect(r.conversations).toHaveLength(4);
+    expect(r.conversations).toHaveLength(2);
     expect(r.missingColumns).toEqual([]);
-    expect(r.conversations[1].rating).toBe(2);
-    expect(r.conversations[0].id).toBe("b1-0001");
+    expect(r.conversations[0]).toMatchObject({ id: "b1-0001", text: "Date searches return zero results, again", rating: 1 });
+    expect(r.conversations[1].sourceUrl).toBe("https://www.reddit.com/r/googlephotos/comments/x/");
   });
 
   it("accepts header aliases, skips empty text, and drops non-http links", () => {

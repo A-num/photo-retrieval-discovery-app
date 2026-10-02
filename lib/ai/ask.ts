@@ -1,26 +1,27 @@
-import { z } from "zod";
-import type { AskAnswer, ConversationAnalysis, CountItem, Dataset } from "@/types";
+import type { AskAnswer, AskTurn, ConversationAnalysis, CountItem, Dataset } from "@/types";
 import { countBy, relevantAnalyses } from "@/lib/insights";
-import { callStructured, hasClaude } from "./client";
-import { ASK_SYSTEM, askDatasetBlock } from "@/prompts/ask";
+import { hasClaude } from "./client";
+import { askAgent } from "./research-agent";
 
 const MIN_EVIDENCE = 2;
-const MAX_EVIDENCE_SHOWN = 12;
+const MAX_EVIDENCE_SHOWN = 8;
 
 function sourcesFor(ds: Dataset, ids: string[]): CountItem[] {
   const byId = new Map(ds.conversations.map((c) => [c.id, c.source]));
   return countBy(ids.map((id) => byId.get(id) ?? "Unknown"));
 }
 
-function insufficient(mode: AskAnswer["mode"], reason: string, ids: string[] = [], ds?: Dataset): AskAnswer {
+function insufficient(mode: AskAnswer["mode"], reason: string, ids: string[] = [], ds?: Dataset, steps: string[] = []): AskAnswer {
   return {
     mode,
     sufficientEvidence: false,
-    finding: `The dataset doesn't contain enough evidence to answer this. ${reason}`,
-    keyPoints: [],
-    evidenceIds: ids,
-    evidenceCount: ids.length,
+    answer: `The dataset doesn't contain enough evidence to answer this. ${reason}`,
+    keyNumbers: [],
+    confidence: "low",
+    basedOn: ids.length,
+    evidenceIds: ids.slice(0, MAX_EVIDENCE_SHOWN),
     sources: ds ? sourcesFor(ds, ids) : [],
+    steps,
   };
 }
 
@@ -42,8 +43,9 @@ const TOPIC_FILTERS: [RegExp, Filter][] = [
   [/\b(family|kids?|children|parents?)\b/i, { label: "family photos", pred: (a) => a.assetType === "Family photo" }],
   [/\b(events?|weddings?|birthdays?|party|parties|concerts?)\b/i, { label: "events", pred: (a) => a.assetType === "Event photo" || a.rememberedCategories.includes("Context / Event") }],
   [/\bschool\b/i, { label: "school", pred: (a, t) => a.assetType === "School photo" || /\bschool|class\b/i.test(t) }],
-  [/\bwork\b|office|coworker/i, { label: "work", pred: (a) => a.assetType === "Work photo" }],
-  [/\b(people|person|faces?)\b/i, { label: "people", pred: (a) => a.rememberedCategories.includes("People") }],
+  // Bare "work" / "people" are too common in questions ("when search doesn't work", "what do people do") to act as topics.
+  [/\b(at work|work (photos?|pictures?|events?)|office|coworkers?|colleagues?)\b/i, { label: "work", pred: (a) => a.assetType === "Work photo" }],
+  [/\b(photos? of (people|a person|someone)|specific (people|person)|faces?|face (search|groups?))\b/i, { label: "people", pred: (a) => a.rememberedCategories.includes("People") }],
   [/\b(places?|locations?)\b/i, { label: "places", pred: (a) => a.rememberedCategories.includes("Location") || a.assetType === "Photo of a place" }],
 ];
 
@@ -79,15 +81,15 @@ function pct(n: number, d: number) {
 export function askLocal(question: string, ds: Dataset): AskAnswer {
   const relevant = relevantAnalyses(ds);
   const q = question.trim();
-  const filters = [
-    ...TOPIC_FILTERS.filter(([re]) => re.test(q)).map(([, f]) => f),
-    ...FORGOT_PHRASES.filter(([re]) => re.test(q)).map(([, f]) => f),
-  ];
+  // Topics combine with OR ("screenshots and documents" means both groups); forgotten cues narrow with AND.
+  const topics = TOPIC_FILTERS.filter(([re]) => re.test(q)).map(([, f]) => f);
+  const forgot = FORGOT_PHRASES.filter(([re]) => re.test(q)).map(([, f]) => f);
+  const filters = [...topics, ...forgot];
   let intent = detectIntent(q);
 
   let subset = relevant.filter((a) => {
     const t = searchText(ds, a);
-    return filters.every((f) => f.pred(a, t));
+    return (!topics.length || topics.some((f) => f.pred(a, t))) && forgot.every((f) => f.pred(a, t));
   });
 
   // No recognised topic or intent: fall back to keyword matching over the original text.
@@ -105,13 +107,18 @@ export function askLocal(question: string, ds: Dataset): AskAnswer {
     intent = "failure";
   }
 
-  const scope = filters.length ? ` about ${filters.map((f) => f.label).join(" + ")}` : keywordMode ? " matching your keywords" : "";
+  const scope = filters.length
+    ? ` about ${topics.map((f) => f.label).join(" or ")}${topics.length && forgot.length ? " where users " : ""}${forgot.map((f) => f.label).join(" and ")}`
+    : keywordMode
+      ? " matching your keywords"
+      : "";
   if (subset.length < MIN_EVIDENCE) {
     return insufficient(
       "local",
       `Only ${subset.length} analyzed conversation${subset.length === 1 ? "" : "s"}${keywordMode ? " matched your keywords" : `${scope} matched`} (minimum ${MIN_EVIDENCE}).`,
       subset.map((a) => a.conversationId),
       ds,
+      [`Searched ${relevant.length} retrieval conversations${scope}: ${subset.length} matched`],
     );
   }
 
@@ -182,77 +189,35 @@ export function askLocal(question: string, ds: Dataset): AskAnswer {
     .sort((a, b) => b.confidence - a.confidence)
     .map((a) => a.conversationId);
 
+  const keywordTagged = subset.filter((a) => a.analyzedBy === "heuristic").length;
   return {
     mode: "local",
     sufficientEvidence: true,
-    finding,
-    keyPoints: counts.slice(0, 5).map((c) => `${c.label}: ${c.count} of ${n} (${pct(c.count, n)}%)`),
+    answer: finding,
+    keyNumbers: counts.slice(0, 3).map((c) => ({ label: c.label, value: `${c.count} (${pct(c.count, n)}%)` })),
+    confidence: keywordMode || keywordTagged > n / 2 ? "low" : "medium",
+    basedOn: n,
     evidenceIds: evidence.slice(0, MAX_EVIDENCE_SHOWN),
-    evidenceCount: evidence.length,
     sources: sourcesFor(ds, evidence),
+    steps: [
+      `Matched ${n} retrieval conversations${scope || ""}`,
+      `Counted ${intent === "remember" || intent === null ? "what users remembered" : intent === "forget" ? "what users forgot" : intent === "workaround" ? "workarounds" : intent === "outcome" ? "outcomes" : intent === "problems" ? "problem clusters" : "failure types"}`,
+    ],
     caveats: keywordMode
-      ? "Answered by keyword match (no API key configured). Results may include loosely related conversations."
-      : "Computed from the analyzed dataset without an LLM (no API key configured).",
+      ? "Answered by keyword match without an LLM (no API key). Results may include loosely related conversations."
+      : "Computed with fixed rules, without an LLM (no API key). Follow-up questions and open-ended analysis need ANTHROPIC_API_KEY.",
   };
 }
 
-// ─── Claude research assistant ─────────────────────────────────────────────
+// ─── Entry point ───────────────────────────────────────────────────────────
 
-const AskSchema = z.object({
-  sufficientEvidence: z.boolean(),
-  finding: z.string(),
-  keyPoints: z.array(z.string()),
-  supportingConversationIds: z.array(z.string()),
-  caveats: z.string().nullable(),
-});
-
-export function datasetLines(ds: Dataset): string[] {
-  return ds.conversations.map((c) => {
-    const a = ds.analyses[c.id];
-    const head = `[${c.id}] ${c.source}${c.date ? ` | ${c.date}` : ""}${c.synthetic ? " | synthetic" : ""}${c.title ? ` | ${c.title}` : ""}\n${c.text}`;
-    if (!a) return `${head}\nanalysis: none`;
-    if (!a.retrievalRelevant) return `${head}\nanalysis: not retrieval-related`;
-    return `${head}\nanalysis: wants=${a.whatUserWants}; asset=${a.assetType}; remembered=${a.remembered.join(", ")} [${a.rememberedCategories.join(", ")}]; forgot=${a.forgotten.join(", ")} [${a.forgottenCategories.join(", ")}]; search=${a.searchAttempt ?? "n/a"}; failures=${a.failureCategories.join(", ")}; workaround=${a.workaround ?? "none"}; outcome=${a.outcomeCategory}; problem=${a.problemId ?? "none"}`;
-  });
-}
-
-export async function askClaude(question: string, ds: Dataset): Promise<AskAnswer> {
-  const out = await callStructured({
-    system: ASK_SYSTEM,
-    cachedContext: askDatasetBlock(datasetLines(ds)),
-    user: question,
-    schema: AskSchema,
-    effort: "high",
-  });
-  // Never show evidence the model referenced but the dataset doesn't contain.
-  const known = new Set(ds.conversations.map((c) => c.id));
-  const ids = [...new Set(out.supportingConversationIds)].filter((id) => known.has(id));
-  const dropped = out.supportingConversationIds.length - ids.length;
-  const sufficient = out.sufficientEvidence && ids.length >= MIN_EVIDENCE;
-  const caveats = [
-    out.caveats,
-    dropped > 0 ? `${dropped} cited id(s) were not in the dataset and were removed.` : null,
-    out.sufficientEvidence && !sufficient ? "Fewer than 2 verifiable supporting conversations." : null,
-  ].filter(Boolean).join(" ");
-
-  return {
-    mode: "claude",
-    sufficientEvidence: sufficient,
-    finding: out.finding,
-    keyPoints: out.keyPoints.slice(0, 5),
-    evidenceIds: ids,
-    evidenceCount: ids.length,
-    sources: sourcesFor(ds, ids),
-    caveats: caveats || undefined,
-  };
-}
-
-export async function ask(question: string, ds: Dataset): Promise<AskAnswer> {
+/** Answers with the Claude research agent when a key is set, otherwise with the local rules engine. */
+export async function ask(question: string, ds: Dataset, history: AskTurn[] = []): Promise<AskAnswer> {
   if (!hasClaude()) return askLocal(question, ds);
   try {
-    return await askClaude(question, ds);
+    return await askAgent(question, ds, history);
   } catch (err) {
     const local = askLocal(question, ds);
-    return { ...local, caveats: `Claude request failed (${(err as Error).message}); answered locally. ${local.caveats ?? ""}` };
+    return { ...local, caveats: `Claude request failed (${(err as Error).message}); answered with local rules instead. ${local.caveats ?? ""}` };
   }
 }

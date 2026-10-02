@@ -17,9 +17,7 @@ export interface Conversation {
   title?: string;
   text: string;
   rating?: number;
-  /** true for the bundled synthetic dataset — never shown as real user evidence */
-  synthetic?: boolean;
-  /** "demo" for bundled data, or the import batch id for uploaded CSVs */
+  /** Import batch id the conversation came from */
   dataset: string;
 }
 
@@ -53,6 +51,7 @@ export const FAILURE_TYPES = [
   "Too many results",
   "Screenshot/document retrieval",
   "Visual description gap",
+  "Product change / regression",
 ] as const;
 export type FailureType = (typeof FAILURE_TYPES)[number];
 
@@ -88,7 +87,8 @@ export const ASSET_TYPES = [
 ] as const;
 export type AssetType = (typeof ASSET_TYPES)[number];
 
-export type AnalyzedBy = "demo-precomputed" | "claude" | "heuristic";
+/** "hypothesis" marks the starting problem clusters, written before any evidence was analyzed. */
+export type AnalyzedBy = "hypothesis" | "claude" | "heuristic";
 
 export interface ConversationAnalysis {
   conversationId: string;
@@ -158,13 +158,42 @@ export interface ProblemSummary extends ProblemCluster {
   sources: CountItem[];
 }
 
+export interface KeyNumber {
+  label: string;
+  value: string;
+}
+
+/** A brief, analyzed answer from Ask AI. Quotes are available as evidence but not part of the answer. */
 export interface AskAnswer {
   mode: "claude" | "local";
   sufficientEvidence: boolean;
-  finding: string;
-  keyPoints: string[];
+  /** 1–4 sentences, answer first. */
+  answer: string;
+  keyNumbers: KeyNumber[];
+  confidence: "high" | "medium" | "low";
+  /** How many conversations the answer was computed over. */
+  basedOn: number;
+  /** Conversations the answer cites as examples (verified to exist and to have been retrieved). */
   evidenceIds: string[];
-  evidenceCount: number;
   sources: CountItem[];
+  /** The analysis steps taken, in plain language. */
+  steps: string[];
   caveats?: string;
+}
+
+/** A compact evidence item returned alongside an answer. */
+export interface EvidenceSnippet {
+  id: string;
+  source: string;
+  date?: string;
+  rating?: number;
+  title?: string;
+  excerpt: string;
+  sourceUrl?: string;
+}
+
+/** A previous question and answer, sent back for follow-up questions. */
+export interface AskTurn {
+  question: string;
+  answer: string;
 }

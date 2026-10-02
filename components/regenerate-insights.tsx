@@ -23,7 +23,7 @@ export function RegenerateInsights({ enabled, regenerated }: { enabled: boolean;
   if (!enabled) {
     return (
       <span className="text-xs text-muted-foreground">
-        Showing pre-computed insights. Set ANTHROPIC_API_KEY to regenerate them from the evidence.
+        Showing starting hypotheses. Set ANTHROPIC_API_KEY to rewrite them from the collected evidence.
       </span>
     );
   }
@@ -32,7 +32,7 @@ export function RegenerateInsights({ enabled, regenerated }: { enabled: boolean;
       {error && <span className="text-xs text-destructive">{error}</span>}
       {regenerated && (
         <Button variant="ghost" size="sm" disabled={pending} onClick={() => run("DELETE")}>
-          Restore defaults
+          Restore hypotheses
         </Button>
       )}
       <Button variant="outline" size="sm" disabled={pending} onClick={() => startTransition(() => run("POST"))}>

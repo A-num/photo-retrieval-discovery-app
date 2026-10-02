@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ExternalLink, Star } from "lucide-react";
 import type { Conversation } from "@/types";
-import { SyntheticBadge, UserEvidenceLabel } from "@/components/labels";
+import { UserEvidenceLabel } from "@/components/labels";
 
 /** Original user text, shown verbatim with its source metadata. */
 export function EvidenceCard({ conversation: c, note }: { conversation: Conversation; note?: string }) {
@@ -9,7 +9,6 @@ export function EvidenceCard({ conversation: c, note }: { conversation: Conversa
     <article className="rounded-lg border border-evidence-border/70 bg-background p-4">
       <header className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
         <UserEvidenceLabel />
-        {c.synthetic && <SyntheticBadge />}
         <span className="font-medium text-foreground">{c.source}</span>
         {c.date && <span>· {c.date}</span>}
         {c.rating !== undefined && (
@@ -27,9 +26,7 @@ export function EvidenceCard({ conversation: c, note }: { conversation: Conversa
             View source <ExternalLink className="size-3" />
           </a>
         ) : (
-          <span className="text-muted-foreground">
-            {c.synthetic ? "No source link (synthetic demo conversation)" : "No source link provided"}
-          </span>
+          <span className="text-muted-foreground">No link to the individual post (source feed doesn&apos;t provide one)</span>
         )}
         <Link href={`/conversations/${c.id}`} className="text-muted-foreground hover:text-foreground hover:underline">
           {note ?? "Full analysis →"}

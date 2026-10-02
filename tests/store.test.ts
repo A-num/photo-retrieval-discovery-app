@@ -11,6 +11,12 @@ beforeAll(() => {
 });
 
 describe("store", () => {
+  it("starts empty: no bundled or demo conversations", async () => {
+    const ds = await getDataset();
+    expect(ds.conversations).toEqual([]);
+    expect(ds.problems.length).toBeGreaterThan(0); // problem hypotheses are still available to sort into
+  });
+
   it("merges uploads into the dataset and removes them again", async () => {
     const base = await getDataset();
     const conv = {
@@ -29,7 +35,7 @@ describe("store", () => {
     expect(ds.conversations).toHaveLength(base.conversations.length + 1);
     expect(ds.analyses["up-1"].problemId).toBe("screenshot-buried");
     expect(ds.analyses["up-1"].opportunityArea).toBe("Screenshots as searchable knowledge");
-    expect(dashboardStats(ds).uploadedCount).toBe(1);
+    expect(dashboardStats(ds).totalConversations).toBe(base.conversations.length + 1);
     expect(await getImports()).toHaveLength(1);
 
     await deleteImport("batch-1");

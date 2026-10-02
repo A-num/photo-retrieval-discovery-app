@@ -79,8 +79,6 @@ export interface DashboardStats {
   workarounds: CountItem[];
   outcomes: CountItem[];
   sources: CountItem[];
-  demoCount: number;
-  uploadedCount: number;
 }
 
 export function dashboardStats(ds: Dataset): DashboardStats {
@@ -101,8 +99,6 @@ export function dashboardStats(ds: Dataset): DashboardStats {
     ),
     outcomes: countBy(relevant.map((a) => a.outcomeCategory)),
     sources: countBy(ds.conversations.map((c) => c.source)),
-    demoCount: ds.conversations.filter((c) => c.dataset === "demo").length,
-    uploadedCount: ds.conversations.filter((c) => c.dataset !== "demo").length,
   };
 }
 
@@ -113,7 +109,6 @@ export interface ConversationRow {
   date?: string;
   title?: string;
   text: string;
-  synthetic: boolean;
   retrievalRelevant: boolean;
   scenario: string;
   assetType: string;
@@ -138,7 +133,6 @@ export function conversationRows(ds: Dataset): ConversationRow[] {
       date: c.date,
       title: c.title,
       text: c.text,
-      synthetic: !!c.synthetic,
       retrievalRelevant: a?.retrievalRelevant ?? false,
       scenario: a?.whatUserWants ?? "Not analyzed",
       assetType: a?.assetType ?? "Other",

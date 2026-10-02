@@ -1,7 +1,7 @@
 import { getDataset } from "@/lib/store";
 import { conversationRows } from "@/lib/insights";
 import { ConversationsTable } from "@/components/conversations-table";
-import { DatasetBanner } from "@/components/labels";
+import { DatasetBanner, EmptyDataset } from "@/components/labels";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +10,15 @@ export default async function ConversationsPage({ searchParams }: PageProps<"/co
   const ds = await getDataset();
   const rows = conversationRows(ds);
   const initialProblem = typeof sp.problem === "string" ? sp.problem : "";
+
+  if (ds.conversations.length === 0) {
+    return (
+      <>
+        <h1 className="mb-6 text-2xl font-semibold tracking-tight">Conversations</h1>
+        <EmptyDataset />
+      </>
+    );
+  }
 
   return (
     <>

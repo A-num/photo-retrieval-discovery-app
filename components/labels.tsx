@@ -1,4 +1,5 @@
-import { Quote, Sparkles, FlaskConical, Database, AlertTriangle } from "lucide-react";
+import Link from "next/link";
+import { Quote, Sparkles, Database, AlertTriangle } from "lucide-react";
 import type { Dataset } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -21,8 +22,8 @@ export function AiAnalysisLabel({ className, by }: { className?: string; by?: st
   const suffix =
     by === "heuristic"
       ? " · keyword-based"
-      : by === "demo-precomputed"
-        ? " · pre-computed"
+      : by === "hypothesis"
+        ? " · hypothesis"
         : by === "local"
           ? " · computed locally"
           : "";
@@ -38,36 +39,10 @@ export function AiAnalysisLabel({ className, by }: { className?: string; by?: st
   );
 }
 
-export function SyntheticBadge({ className }: { className?: string }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 rounded-sm bg-muted px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-muted-foreground uppercase",
-        className,
-      )}
-    >
-      <FlaskConical className="size-3" /> Synthetic
-    </span>
-  );
-}
-
 export function DatasetBanner({ ds }: { ds: Dataset }) {
-  const demo = ds.conversations.filter((c) => c.synthetic).length;
-  const real = ds.conversations.length - demo;
-  const demoProblems = ds.problems.every((p) => p.generatedBy !== "claude");
-
-  if (demo > 0) {
-    return (
-      <div className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-dashed bg-background px-4 py-2.5 text-sm">
-        <FlaskConical className="size-4 text-muted-foreground" />
-        <span className="font-semibold tracking-wide uppercase">Demo data</span>
-        <span className="text-muted-foreground">
-          {demo} synthetic research conversations. These are not real users
-          {real > 0 ? `. Mixed with ${real} collected conversations. Turn demo data off on the Data page to analyze real data alone.` : "."}
-        </span>
-      </div>
-    );
-  }
+  const total = ds.conversations.length;
+  if (total === 0) return null;
+  const hypotheses = ds.problems.every((p) => p.generatedBy !== "claude");
   const sources = [...new Set(ds.conversations.map((c) => c.source))].join(", ");
   const keywordOnly = ds.conversations.filter((c) => ds.analyses[c.id]?.analyzedBy === "heuristic").length;
   return (
@@ -76,20 +51,36 @@ export function DatasetBanner({ ds }: { ds: Dataset }) {
         <Database className="size-4 text-muted-foreground" />
         <span className="font-semibold tracking-wide uppercase">Real data</span>
         <span className="text-muted-foreground">
-          {real} collected conversations{sources ? ` from ${sources}` : ""}.
-          {demoProblems && " Problem descriptions were written from the demo set; counts and evidence come from your data."}
+          {total} collected conversations from {sources}.
+          {hypotheses && " Problem descriptions are starting hypotheses; counts and evidence come from the collected data."}
         </span>
       </div>
       {keywordOnly > 0 && (
         <div className="flex gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
           <AlertTriangle className="mt-0.5 size-4 shrink-0" />
           <span>
-            <b>Rough cut: don&apos;t cite these numbers.</b> {keywordOnly} of {real} conversations were analyzed with keyword rules, which were only about 35–40% accurate at
+            <b>Rough cut: don&apos;t cite these numbers.</b> {keywordOnly} of {total} conversations were analyzed with keyword rules, which were only about 35–40% accurate at
             spotting real retrieval problems in a hand-checked sample, and the memory/failure tags are cruder still. Add an ANTHROPIC_API_KEY and run{" "}
             <code className="rounded bg-amber-100 px-1 text-xs dark:bg-amber-900">npm run analyze</code> for findings you can stand behind.
           </span>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Shown on analysis pages before any data has been collected. */
+export function EmptyDataset() {
+  return (
+    <div className="rounded-xl border border-dashed bg-background p-10 text-center">
+      <Database className="mx-auto size-6 text-muted-foreground" />
+      <h2 className="mt-3 font-semibold">No data yet</h2>
+      <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+        Collect real conversations (App Store, Community, Reddit, Play Store) and analyze them to populate this page.
+      </p>
+      <Link href="/data" className="mt-4 inline-block text-sm font-medium underline underline-offset-2">
+        Go to Data →
+      </Link>
     </div>
   );
 }

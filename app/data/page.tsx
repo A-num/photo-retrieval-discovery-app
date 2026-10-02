@@ -1,21 +1,18 @@
-import { getImports, getSettings } from "@/lib/store";
-import { DEMO_ANALYSES, DEMO_CONVERSATIONS } from "@/data/demo-conversations";
-import { DemoToggle } from "@/components/demo-toggle";
-import { countBy } from "@/lib/insights";
+import { getDataset, getImports } from "@/lib/store";
+import { countBy, relevantAnalyses } from "@/lib/insights";
 import { hasClaude, MODEL } from "@/lib/ai/client";
 import { EXPECTED_COLUMNS } from "@/lib/csv";
 import { CsvUpload, DeleteImportButton } from "@/components/csv-upload";
-import { SectionTitle, SyntheticBadge } from "@/components/labels";
+import { SectionTitle } from "@/components/labels";
 
 export const dynamic = "force-dynamic";
 
 export default async function DataPage() {
   const imports = await getImports();
-  const { includeDemo } = await getSettings();
-  const demo = DEMO_CONVERSATIONS;
-  const demoSources = countBy(demo.map((c) => c.source));
-  const demoRelevant = demo.filter((c) => DEMO_ANALYSES[c.id]?.retrievalRelevant).length;
-  const realCount = imports.reduce((n, b) => n + b.count, 0);
+  const ds = await getDataset();
+  const sources = countBy(ds.conversations.map((c) => c.source));
+  const relevant = relevantAnalyses(ds).length;
+  const byClaude = Object.values(ds.analyses).filter((a) => a.analyzedBy === "claude").length;
   // The analyze script saves large files in batches; show one row per file.
   const groups = Object.values(
     imports.reduce<Record<string, { name: string; ids: string[]; count: number; relevant: number; createdAt: string; modes: string[] }>>((acc, b) => {
@@ -45,35 +42,41 @@ export default async function DataPage() {
       </header>
 
       <section className="mb-6 rounded-xl border bg-background p-5">
-        <div className="flex flex-wrap items-center gap-2">
-          <h2 className="font-semibold">Demo dataset</h2>
-          <SyntheticBadge />
-        </div>
-        <p className="mt-1 text-sm font-medium">DEMO DATA: synthetic research conversations</p>
-        <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-          Written for this prototype to cover travel, restaurants, family, medical, screenshots, documents, receipts, events, school, work, people and places.
-          They are not real users and have no source links. Analyses are pre-computed so the app works without an API key.
-        </p>
-        <div className="mt-4 rounded-lg border bg-muted/40 p-3">
-          <DemoToggle includeDemo={includeDemo} realCount={realCount} />
-        </div>
-        <div className="mt-4 flex flex-wrap gap-8">
-          <div>
-            <div className="text-3xl font-semibold tabular-nums">{demo.length}</div>
-            <div className="text-xs text-muted-foreground">conversations ({demoRelevant} retrieval-related)</div>
-          </div>
-          <div>
-            <div className="mb-1 text-xs text-muted-foreground">Sources</div>
-            <ul className="text-sm">
-              {demoSources.map((s) => (
-                <li key={s.label} className="flex justify-between gap-6">
-                  <span>{s.label}</span>
-                  <span className="text-muted-foreground tabular-nums">{s.count}</span>
+        <SectionTitle>Dataset</SectionTitle>
+        {ds.conversations.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No conversations yet. Collect and upload data below.</p>
+        ) : (
+          <div className="flex flex-wrap gap-8">
+            <div>
+              <div className="text-3xl font-semibold tabular-nums">{ds.conversations.length}</div>
+              <div className="text-xs text-muted-foreground">real conversations ({relevant} retrieval-related)</div>
+            </div>
+            <div>
+              <div className="mb-1 text-xs text-muted-foreground">Sources</div>
+              <ul className="text-sm">
+                {sources.map((s) => (
+                  <li key={s.label} className="flex justify-between gap-6">
+                    <span>{s.label}</span>
+                    <span className="text-muted-foreground tabular-nums">{s.count}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <div className="mb-1 text-xs text-muted-foreground">Analyzed by</div>
+              <ul className="text-sm">
+                <li className="flex justify-between gap-6">
+                  <span>Claude</span>
+                  <span className="text-muted-foreground tabular-nums">{byClaude}</span>
                 </li>
-              ))}
-            </ul>
+                <li className="flex justify-between gap-6">
+                  <span>Keyword rules</span>
+                  <span className="text-muted-foreground tabular-nums">{ds.conversations.length - byClaude}</span>
+                </li>
+              </ul>
+            </div>
           </div>
-        </div>
+        )}
       </section>
 
       <section className="mb-6 rounded-xl border bg-background p-5">
@@ -104,10 +107,8 @@ export default async function DataPage() {
           Expected columns: <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{EXPECTED_COLUMNS.join(", ")}</code>. Only{" "}
           <code className="rounded bg-muted px-1 text-xs">text</code> is required. Uploaded rows go through the same pipeline: screening, extraction, then
           grouping into problems. {claude ? "Up to 200 rows per upload with Claude." : "Without an API key, rows are analyzed with keyword rules (lower confidence)."}{" "}
-          <a href="/sample-conversations.csv" download className="underline underline-offset-2">
-            Download a sample CSV
-          </a>
-          .
+          For a hand-collected file, start from{" "}
+          <code className="rounded bg-muted px-1 text-xs">data/sources/play-store-template.csv</code>.
         </p>
         <CsvUpload />
       </section>
