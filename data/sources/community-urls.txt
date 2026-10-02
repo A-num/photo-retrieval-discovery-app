@@ -1,0 +1,11 @@
+# Google Photos Community threads, one URL per line. Lines starting with # are ignored.
+# Find threads in a browser (see data/sources/README.md), then run: npm run collect:community
+https://support.google.com/photos/thread/393816022/can-t-find-photos-from-over-10-years-ago?hl=en
+https://support.google.com/photos/thread/48730845/where-is-my-old-photos?hl=en
+https://support.google.com/photos/thread/308953776/i-can%E2%80%99t-search-my-photos-up-like-i-used-to-before-google-photos-was-the-easiest-what-happened-jus?hl=en
+https://support.google.com/photos/thread/276746719/i-can-t-find-my-old-photos-and-videos-please-recover-my-photos-and-videos?hl=en
+https://support.google.com/photos/thread/318370488/can-t-find-my-photos-from-2016?hl=en
+https://support.google.com/photos/thread/273154473/can%E2%80%99t-find-an-old-photo-in-google-photos-even-though-it-showed-me-the-exact-photo-days-ago?hl=en
+https://support.google.com/photos/thread/99679?hl=en
+https://support.google.com/photos/thread/318336219/i-can-t-find-my-old-photos-and-videos-that-were-backed-up?hl=en
+https://support.google.com/photos/thread/358700340/can-t-see-some-of-my-old-backed-up-photos?hl=en
