@@ -77,7 +77,7 @@ export function CsvUpload() {
             <div className="mt-1 text-muted-foreground">Missing optional columns: {result.missingColumns.join(", ")}.</div>
           )}
           {result.errors.length > 0 && (
-            <div className="mt-1 text-amber-700 dark:text-amber-300">
+            <div className="mt-1 text-forget-fg">
               {result.errors.length} conversations couldn&apos;t be analyzed yet and are awaiting analysis.
             </div>
           )}

@@ -6,7 +6,6 @@ import { AlertTriangle, ArrowUp, ChevronRight, Loader2, RotateCcw, Star } from "
 import type { AskAnswer, AskTurn, EvidenceSnippet } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { AiAnalysisLabel } from "@/components/labels";
 import { cn } from "@/lib/utils";
 
 const EXAMPLES = [
@@ -24,9 +23,9 @@ interface Turn {
 }
 
 const CONFIDENCE_STYLE: Record<AskAnswer["confidence"], string> = {
-  high: "bg-emerald-50 text-emerald-800 ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:ring-emerald-800",
-  medium: "bg-sky-50 text-sky-800 ring-sky-200 dark:bg-sky-950 dark:text-sky-200 dark:ring-sky-800",
-  low: "bg-amber-50 text-amber-900 ring-amber-200 dark:bg-amber-950 dark:text-amber-200 dark:ring-amber-800",
+  high: "bg-remember-bg text-remember-fg ring-remember-border",
+  medium: "bg-muted text-foreground ring-border",
+  low: "bg-forget-bg text-forget-fg ring-forget-border",
 };
 
 function Disclosure({ label, children }: { label: string; children: React.ReactNode }) {
@@ -45,13 +44,12 @@ function AnswerCard({ result }: { result: Result }) {
   return (
     <div className="rounded-xl border border-ai-border/60 bg-background p-5">
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <AiAnalysisLabel by={result.mode === "local" ? "local" : "claude"} />
         {result.sufficientEvidence ? (
-          <span className={cn("rounded-md px-1.5 py-0.5 text-[11px] font-medium ring-1", CONFIDENCE_STYLE[result.confidence])}>
+          <span className={cn("rounded-md px-1.5 py-0.5 text-xs font-medium ring-1", CONFIDENCE_STYLE[result.confidence])}>
             {result.confidence} confidence
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-300">
+          <span className="inline-flex items-center gap-1 text-xs font-semibold text-forget-fg">
             <AlertTriangle className="size-3.5" /> Not enough evidence
           </span>
         )}

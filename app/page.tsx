@@ -4,7 +4,7 @@ import { dashboardStats, summarizeAllProblems, MIN_EVIDENCE_FOR_OPPORTUNITY } fr
 import { hasClaude } from "@/lib/ai/client";
 import { BarListChart } from "@/components/charts/bar-list-chart";
 import { ProblemCard } from "@/components/problem-card";
-import { AiAnalysisLabel, DatasetBanner, EmptyDataset, SectionTitle } from "@/components/labels";
+import { DatasetBanner, EmptyDataset, SectionTitle } from "@/components/labels";
 import { RegenerateInsights } from "@/components/regenerate-insights";
 
 export const dynamic = "force-dynamic";
@@ -59,14 +59,14 @@ export default async function DashboardPage() {
 
       <section className="mb-8 grid gap-4 lg:grid-cols-2">
         <div className="rounded-xl border bg-background p-5">
-          <SectionTitle label={<AiAnalysisLabel />}>A. What users remember</SectionTitle>
+          <SectionTitle>A. What users remember</SectionTitle>
           <p className="-mt-1 mb-3 text-xs text-muted-foreground">
             Memory cues mentioned in {stats.relevantConversations} retrieval conversations (one conversation can mention several).
           </p>
           <BarListChart data={stats.remembered} total={stats.relevantConversations} />
         </div>
         <div className="rounded-xl border bg-background p-5">
-          <SectionTitle label={<AiAnalysisLabel />}>B. Where retrieval breaks</SectionTitle>
+          <SectionTitle>B. Where retrieval breaks</SectionTitle>
           <p className="-mt-1 mb-3 text-xs text-muted-foreground">
             Underlying failure types, not the surface complaint “search can&apos;t find it”.
           </p>
@@ -76,7 +76,7 @@ export default async function DashboardPage() {
 
       <section className="mb-8">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <SectionTitle label={<AiAnalysisLabel by={generatedBy} />}>C. Top problems</SectionTitle>
+          <SectionTitle>C. Top problems</SectionTitle>
           <Link href="/problems" className="text-sm text-muted-foreground hover:text-foreground">
             All problems →
           </Link>
@@ -90,18 +90,18 @@ export default async function DashboardPage() {
 
       <section className="mb-8 grid gap-4 lg:grid-cols-2">
         <div className="rounded-xl border bg-background p-5">
-          <SectionTitle label={<AiAnalysisLabel />}>What users don&apos;t remember</SectionTitle>
+          <SectionTitle>What users don&apos;t remember</SectionTitle>
           <BarListChart data={stats.forgotten} total={stats.relevantConversations} />
         </div>
         <div className="rounded-xl border bg-background p-5">
-          <SectionTitle label={<AiAnalysisLabel />}>What they do instead</SectionTitle>
+          <SectionTitle>What they do instead</SectionTitle>
           <BarListChart data={stats.workarounds} total={stats.relevantConversations} />
         </div>
       </section>
 
       <section className="mb-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <SectionTitle label={<AiAnalysisLabel by={generatedBy} />}>Opportunity areas</SectionTitle>
+          <SectionTitle>Opportunity areas</SectionTitle>
           <RegenerateInsights enabled={hasClaude() && !isReadOnly()} regenerated={generatedBy === "claude"} />
         </div>
         <div className="grid gap-3 md:grid-cols-2">

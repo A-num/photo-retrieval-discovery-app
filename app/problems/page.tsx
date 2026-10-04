@@ -1,7 +1,7 @@
 import { getDataset } from "@/lib/store";
 import { summarizeAllProblems } from "@/lib/insights";
 import { ProblemCard } from "@/components/problem-card";
-import { AiAnalysisLabel, DatasetBanner, EmptyDataset } from "@/components/labels";
+import { DatasetBanner, EmptyDataset } from "@/components/labels";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +25,6 @@ export default async function ProblemsPage() {
       <header className="mb-6">
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-semibold tracking-tight">Retrieval problems</h1>
-          <AiAnalysisLabel />
         </div>
         <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
           Retrieval conversations grouped by their underlying problem: the gap between how people remember a photo and what search can use.

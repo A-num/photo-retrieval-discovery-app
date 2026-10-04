@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, X } from "lucide-react";
+import { Search, X, CircleCheck, CircleX, Clock } from "lucide-react";
 import type { ConversationRow } from "@/lib/insights";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -45,10 +45,17 @@ function FilterSelect({
   );
 }
 
+// Outcome color is backed by an icon so it never relies on color alone.
+const OUTCOME_ICON: Record<string, typeof CircleCheck | undefined> = {
+  Found: CircleCheck,
+  "Found with effort": Clock,
+  "Not found": CircleX,
+};
+
 const OUTCOME_STYLE: Record<string, string> = {
-  Found: "text-emerald-700 dark:text-emerald-300",
-  "Found with effort": "text-amber-700 dark:text-amber-300",
-  "Not found": "text-rose-700 dark:text-rose-300",
+  Found: "text-remember-fg font-medium",
+  "Found with effort": "text-foreground",
+  "Not found": "text-forget-fg font-medium",
 };
 
 const uniqSorted = (xs: string[]) => [...new Set(xs)].sort().map((v) => ({ value: v, label: v }));
@@ -165,7 +172,17 @@ export function ConversationsTable({ rows, problems, initialProblem = "" }: Prop
               <TableCell className="max-w-48 text-xs whitespace-normal">{r.memoryPattern.join(", ") || "—"}</TableCell>
               <TableCell className="max-w-48 text-xs whitespace-normal">{r.failures.join(", ") || "—"}</TableCell>
               <TableCell className={cn("text-xs whitespace-nowrap", OUTCOME_STYLE[r.outcome])}>
-                {r.retrievalRelevant ? r.outcome : "Not retrieval"}
+                {r.retrievalRelevant ? (
+                  <span className="inline-flex items-center gap-1">
+                    {OUTCOME_ICON[r.outcome] && (() => {
+                      const Icon = OUTCOME_ICON[r.outcome]!;
+                      return <Icon className="size-3.5 shrink-0" aria-hidden />;
+                    })()}
+                    {r.outcome}
+                  </span>
+                ) : (
+                  "Not retrieval"
+                )}
               </TableCell>
               <TableCell className="text-right text-xs tabular-nums">{Math.round(r.confidence * 100)}%</TableCell>
             </TableRow>

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getDataset } from "@/lib/store";
 import { summarizeProblem } from "@/lib/insights";
 import { EvidenceCard } from "@/components/evidence-card";
-import { AiAnalysisLabel, Chips, SectionTitle, UserEvidenceLabel } from "@/components/labels";
+import { Chips, SectionTitle, UserEvidenceLabel } from "@/components/labels";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +29,6 @@ export default async function ProblemDetailPage({ params }: PageProps<"/problems
 
       <header className="mt-3 mb-6">
         <div className="mb-2 flex flex-wrap items-center gap-2">
-          <AiAnalysisLabel by={p.generatedBy} />
           <span className="text-sm text-muted-foreground">
             Evidence: <span className="font-medium text-foreground tabular-nums">{p.evidenceCount}</span> conversations
             {p.sources.length > 0 && ` · ${p.sources.map((s) => `${s.label} ${s.count}`).join(" · ")}`}

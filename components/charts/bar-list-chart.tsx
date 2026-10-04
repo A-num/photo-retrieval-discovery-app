@@ -24,7 +24,7 @@ export function BarListChart({ data, total, unit = "conversations" }: Props) {
             width={170}
             tickLine={false}
             axisLine={false}
-            tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+            tick={{ fontSize: 13, fill: "var(--muted-foreground)" }}
           />
           <Tooltip
             cursor={{ fill: "var(--muted)" }}
@@ -43,7 +43,7 @@ export function BarListChart({ data, total, unit = "conversations" }: Props) {
             }}
           />
           <Bar dataKey="count" fill="var(--viz-bar)" radius={[0, 4, 4, 0]} barSize={16} isAnimationActive={false}>
-            <LabelList dataKey="count" position="right" className="tabular-nums" style={{ fontSize: 12, fill: "var(--foreground)" }} />
+            <LabelList dataKey="count" position="right" className="tabular-nums" style={{ fontSize: 13, fill: "var(--foreground)" }} />
           </Bar>
         </BarChart>
       </ResponsiveContainer>

@@ -60,7 +60,7 @@
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  --muted-foreground: #5e5e5e; /* 6.5:1 on white (WCAG AA) */
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
@@ -95,7 +95,7 @@
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
+  --muted-foreground: #b8b8b8; /* 10:1 on the dark background */
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
@@ -125,11 +125,20 @@
     @apply bg-background text-foreground;
   }
   html {
-    @apply font-sans;
+    /* Solid theme background behind the page's translucent tint (otherwise dark mode shows white through). */
+    @apply bg-background font-sans;
   }
 }
-/* Discovery Engine semantic tokens */
+/* Discovery Engine semantic tokens.
+   "Remember" and "forget" use blue vs orange: the pair that stays distinguishable for protanopia,
+   deuteranopia and tritanopia. Text on every tint is >= 5:1 contrast, and chips also carry an icon. */
 :root {
+  --remember-fg: #0b5a96;
+  --remember-bg: #d3e5f8;
+  --remember-border: #8db6e3;
+  --forget-fg: #9a3a00;
+  --forget-bg: #fbdcc4;
+  --forget-border: #e9a273;
   --viz-bar: #2a78d6;
   --viz-grid: oklch(0.922 0 0);
   --evidence: oklch(0.97 0.02 85);
@@ -140,6 +149,12 @@
   --ai-foreground: oklch(0.42 0.14 265);
 }
 .dark {
+  --remember-fg: #a8d1f7;
+  --remember-bg: #13314d;
+  --remember-border: #2f5e8a;
+  --forget-fg: #ffbf8f;
+  --forget-bg: #40230f;
+  --forget-border: #80461c;
   --viz-bar: #3987e5;
   --viz-grid: oklch(1 0 0 / 10%);
   --evidence: oklch(0.26 0.03 85);
@@ -151,10 +166,24 @@
 }
 @theme inline {
   --color-viz-bar: var(--viz-bar);
+  --color-remember-fg: var(--remember-fg);
+  --color-remember-bg: var(--remember-bg);
+  --color-remember-border: var(--remember-border);
+  --color-forget-fg: var(--forget-fg);
+  --color-forget-bg: var(--forget-bg);
+  --color-forget-border: var(--forget-border);
   --color-evidence: var(--evidence);
   --color-evidence-border: var(--evidence-border);
   --color-evidence-foreground: var(--evidence-foreground);
   --color-ai: var(--ai);
   --color-ai-border: var(--ai-border);
   --color-ai-foreground: var(--ai-foreground);
+}
+
+/* Larger small-text steps for readability: xs 13px (was 12), sm 15px (was 14). */
+@theme {
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.25rem;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.45rem;
 }

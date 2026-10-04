@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Check, CircleHelp, TriangleAlert } from "lucide-react";
 import type { ProblemSummary } from "@/types";
 
 export function ProblemCard({ problem }: { problem: ProblemSummary }) {
@@ -18,15 +18,15 @@ export function ProblemCard({ problem }: { problem: ProblemSummary }) {
       </p>
       <dl className="mt-4 grid gap-2 text-sm">
         <div>
-          <dt className="text-xs font-medium tracking-wide text-emerald-700 uppercase dark:text-emerald-300">Remember</dt>
+          <dt className="inline-flex items-center gap-1 text-xs font-semibold tracking-wide text-remember-fg uppercase"><Check className="size-3.5" aria-hidden />Remember</dt>
           <dd>{problem.rememberedDetails.slice(0, 3).join(", ") || top(problem.topRemembered)}</dd>
         </div>
         <div>
-          <dt className="text-xs font-medium tracking-wide text-rose-700 uppercase dark:text-rose-300">Forgot</dt>
+          <dt className="inline-flex items-center gap-1 text-xs font-semibold tracking-wide text-forget-fg uppercase"><CircleHelp className="size-3.5" aria-hidden />Forgot</dt>
           <dd>{top(problem.topForgotten, 2)}</dd>
         </div>
         <div>
-          <dt className="text-xs font-medium tracking-wide text-amber-800 uppercase dark:text-amber-300">Common failure</dt>
+          <dt className="inline-flex items-center gap-1 text-xs font-semibold tracking-wide text-foreground uppercase"><TriangleAlert className="size-3.5" aria-hidden />Common failure</dt>
           <dd>{top(problem.topFailures, 2)}</dd>
         </div>
       </dl>

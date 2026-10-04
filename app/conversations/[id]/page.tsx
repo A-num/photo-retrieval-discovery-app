@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDataset } from "@/lib/store";
 import { EvidenceCard } from "@/components/evidence-card";
-import { AiAnalysisLabel, Chips } from "@/components/labels";
+import { Chips } from "@/components/labels";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +37,7 @@ export default async function ConversationDetailPage({ params }: PageProps<"/con
 
         <div className="rounded-xl border border-ai-border/60 bg-background p-5">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <AiAnalysisLabel by={a?.analyzedBy} />
+            <h2 className="text-sm font-semibold">Analysis</h2>
             {a && <span className="text-xs text-muted-foreground tabular-nums">Confidence {Math.round(a.confidence * 100)}%</span>}
           </div>
           {!a ? (
