@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getDataset } from "@/lib/store";
+import { getDataset, isReadOnly } from "@/lib/store";
 import { dashboardStats, summarizeAllProblems, MIN_EVIDENCE_FOR_OPPORTUNITY } from "@/lib/insights";
 import { hasClaude } from "@/lib/ai/client";
 import { BarListChart } from "@/components/charts/bar-list-chart";
@@ -102,7 +102,7 @@ export default async function DashboardPage() {
       <section className="mb-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <SectionTitle label={<AiAnalysisLabel by={generatedBy} />}>Opportunity areas</SectionTitle>
-          <RegenerateInsights enabled={hasClaude()} regenerated={generatedBy === "claude"} />
+          <RegenerateInsights enabled={hasClaude() && !isReadOnly()} regenerated={generatedBy === "claude"} />
         </div>
         <div className="grid gap-3 md:grid-cols-2">
           {opportunities.map((p) => (

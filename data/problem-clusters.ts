@@ -1,8 +1,8 @@
 import type { ProblemCluster } from "@/types";
 
-// Starting hypotheses for the problem clusters the pipeline sorts conversations into.
-// They were written before any real evidence was analyzed; counts and evidence on every page come from
-// collected data. With an ANTHROPIC_API_KEY, Dashboard → "Regenerate insights" rewrites them from the evidence.
+// Problem clusters the pipeline sorts conversations into. The first set began as hypotheses and the rest were
+// added after reading the collected reviews; descriptions with evidence have been revised against it.
+// Counts and evidence on every page are computed from the analyzed conversations.
 export const PROBLEM_HYPOTHESES: ProblemCluster[] = [
   {
     id: "event-not-metadata",
@@ -106,20 +106,19 @@ export const PROBLEM_HYPOTHESES: ProblemCluster[] = [
   },
   {
     id: "people-moment",
-    title: "Finding a specific person at a specific moment",
-    surfaceComplaint: "“Search by face shows every photo of them, not the one I want.”",
+    title: "Users search by person, but face groups are incomplete or stop updating",
+    surfaceComplaint: "“Searching their name only shows photos up to 2021.”",
     underlyingProblem:
-      "Users want the intersection of a person and a moment (grandpa at my graduation, my daughter's first steps). Face groups solve ‘who’ but not ‘when’ or ‘what was happening’, and some people aren't grouped or named at all.",
+      "Person search is how people find family photos, and it only works if face groups are complete and current. When grouping silently stops adding new photos, misses most photos of someone, or can't be corrected by hand, the most-used retrieval path fails without the user knowing why.",
     whyFails:
-      "People search returns thousands of results for close family. Combining a person with an event or age is unreliable, and unnamed or misgrouped faces (old scans, people who have passed away, friends' kids) aren't searchable by name.",
+      "Face groups stop updating after a point in time, resetting them wipes every group, and there is no manual tagging to fill gaps. Users only discover the gap when the photo they want is missing.",
     opportunity: {
-      title: "Person × moment retrieval",
-      description:
-        "Make people search combinable with events, ages and other people, and repair the face groups that matter most.",
+      title: "Trustworthy person search",
+      description: "Make face groups complete, current and correctable, and tell users when grouping isn't working.",
       ideas: [
-        "Queries combining people with events or ages (“Grandpa at Sam's graduation”)",
-        "‘Together’ search for two or more people in the same photo",
-        "Prompted face-group cleanup for high-value people",
+        "Manual tagging, plus merging and splitting of face groups",
+        "A visible signal when face grouping stops processing new photos",
+        "Combine people with time, place or event in one query",
       ],
     },
     generatedBy: "hypothesis",
@@ -127,7 +126,7 @@ export const PROBLEM_HYPOTHESES: ProblemCluster[] = [
   {
     id: "too-many-results",
     title: "Search finds the category, not the photo",
-    surfaceComplaint: "“Searching ‘beach’ gives me 4,000 photos.”",
+    surfaceComplaint: "“It takes forever scrolling through photos to find the ones you want.”",
     underlyingProblem:
       "Search reliably finds the broad category but has no way to narrow to the one photo the user means. Users have discriminating details in mind (the second beach day, the one where the dog is wet) but no way to add them.",
     whyFails:

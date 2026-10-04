@@ -1,134 +1,133 @@
-import { getDataset, getImports } from "@/lib/store";
-import { countBy, relevantAnalyses } from "@/lib/insights";
-import { hasClaude, MODEL } from "@/lib/ai/client";
+import { getFullDataset, getImports, isAnalyzed, isReadOnly } from "@/lib/store";
 import { EXPECTED_COLUMNS } from "@/lib/csv";
 import { CsvUpload, DeleteImportButton } from "@/components/csv-upload";
 import { SectionTitle } from "@/components/labels";
 
 export const dynamic = "force-dynamic";
 
-export default async function DataPage() {
-  const imports = await getImports();
-  const ds = await getDataset();
-  const sources = countBy(ds.conversations.map((c) => c.source));
-  const relevant = relevantAnalyses(ds).length;
-  const byClaude = Object.values(ds.analyses).filter((a) => a.analyzedBy === "claude").length;
-  // The analyze script saves large files in batches; show one row per file.
-  const groups = Object.values(
-    imports.reduce<Record<string, { name: string; ids: string[]; count: number; relevant: number; createdAt: string; modes: string[] }>>((acc, b) => {
-      const name = b.filename.replace(/ \(rows [^)]*\)$/, "");
-      const g = (acc[name] ??= { name, ids: [], count: 0, relevant: 0, createdAt: b.createdAt, modes: [] });
-      g.ids.push(b.id);
-      g.count += b.count;
-      g.relevant += b.relevant;
-      if (!g.modes.includes(b.analyzedBy)) g.modes.push(b.analyzedBy);
-      return acc;
-    }, {}),
+const SOURCE_DESCRIPTIONS: Record<string, string> = {
+  "App Store": "Public reviews of the Google Photos iOS app (US, UK, Canada, Australia, India, Ireland, New Zealand)",
+  "Google Photos Community": "Help threads from the official Google Photos Community forum",
+};
+
+function Stat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-xl border bg-background p-4">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="mt-1 text-2xl font-semibold tabular-nums">{value.toLocaleString()}</div>
+    </div>
   );
-  const claude = hasClaude();
+}
+
+export default async function DataPage() {
+  const [ds, imports] = await Promise.all([getFullDataset(), getImports()]);
+  const readOnly = isReadOnly();
+  const analyzed = ds.conversations.filter((c) => isAnalyzed(ds.analyses[c.id]));
+  const retrieval = analyzed.filter((c) => ds.analyses[c.id].retrievalRelevant);
+
+  const sources = [...new Set(ds.conversations.map((c) => c.source))].map((source) => {
+    const all = ds.conversations.filter((c) => c.source === source);
+    const years = all.map((c) => c.date?.slice(0, 4)).filter((y): y is string => !!y).sort();
+    return {
+      source,
+      description: SOURCE_DESCRIPTIONS[source] ?? "Imported conversations",
+      collected: all.length,
+      analyzed: all.filter((c) => isAnalyzed(ds.analyses[c.id])).length,
+      period: years.length ? `${years[0]}–${years[years.length - 1]}` : "—",
+    };
+  });
+
+  // Large files are stored in several batches; show one row per imported file.
+  const fileOf = new Map(imports.map((b) => [b.id, b.filename.replace(/ \(rows [^)]*\)$/, "")]));
+  const files = [...new Set(fileOf.values())].map((name) => {
+    const ids = imports.filter((b) => fileOf.get(b.id) === name).map((b) => b.id);
+    const convs = ds.conversations.filter((c) => ids.includes(c.dataset));
+    return {
+      name,
+      ids,
+      createdAt: imports.find((b) => b.id === ids[0])!.createdAt,
+      count: convs.length,
+      analyzed: convs.filter((c) => isAnalyzed(ds.analyses[c.id])).length,
+    };
+  });
 
   return (
     <>
       <header className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight">Data</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Analysis mode:{" "}
-          {claude ? (
-            <span className="font-medium text-foreground">Claude ({MODEL})</span>
-          ) : (
-            <span className="font-medium text-foreground">Local keyword analysis (no ANTHROPIC_API_KEY set)</span>
-          )}
-        </p>
+        <p className="mt-1 text-sm text-muted-foreground">Where the research conversations come from, and how much of the dataset has been analyzed.</p>
       </header>
 
+      <section className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Stat label="Conversations collected" value={ds.conversations.length} />
+        <Stat label="Analyzed" value={analyzed.length} />
+        <Stat label="About photo retrieval" value={retrieval.length} />
+        <Stat label="Awaiting analysis" value={ds.conversations.length - analyzed.length} />
+      </section>
+
       <section className="mb-6 rounded-xl border bg-background p-5">
-        <SectionTitle>Dataset</SectionTitle>
-        {ds.conversations.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No conversations yet. Collect and upload data below.</p>
+        <SectionTitle>Sources</SectionTitle>
+        {sources.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No conversations yet. Import a file below to get started.</p>
         ) : (
-          <div className="flex flex-wrap gap-8">
-            <div>
-              <div className="text-3xl font-semibold tabular-nums">{ds.conversations.length}</div>
-              <div className="text-xs text-muted-foreground">real conversations ({relevant} retrieval-related)</div>
-            </div>
-            <div>
-              <div className="mb-1 text-xs text-muted-foreground">Sources</div>
-              <ul className="text-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-xs text-muted-foreground">
+                  <th className="py-2 pr-4 font-medium">Source</th>
+                  <th className="py-2 pr-4 text-right font-medium">Collected</th>
+                  <th className="py-2 pr-4 text-right font-medium">Analyzed</th>
+                  <th className="py-2 font-medium">Period</th>
+                </tr>
+              </thead>
+              <tbody>
                 {sources.map((s) => (
-                  <li key={s.label} className="flex justify-between gap-6">
-                    <span>{s.label}</span>
-                    <span className="text-muted-foreground tabular-nums">{s.count}</span>
-                  </li>
+                  <tr key={s.source} className="border-b last:border-b-0">
+                    <td className="py-3 pr-4">
+                      <div className="font-medium">{s.source}</div>
+                      <div className="text-xs text-muted-foreground">{s.description}</div>
+                    </td>
+                    <td className="py-3 pr-4 text-right tabular-nums">{s.collected.toLocaleString()}</td>
+                    <td className="py-3 pr-4 text-right tabular-nums">{s.analyzed.toLocaleString()}</td>
+                    <td className="py-3 whitespace-nowrap tabular-nums">{s.period}</td>
+                  </tr>
                 ))}
-              </ul>
-            </div>
-            <div>
-              <div className="mb-1 text-xs text-muted-foreground">Analyzed by</div>
-              <ul className="text-sm">
-                <li className="flex justify-between gap-6">
-                  <span>Claude</span>
-                  <span className="text-muted-foreground tabular-nums">{byClaude}</span>
-                </li>
-                <li className="flex justify-between gap-6">
-                  <span>Keyword rules</span>
-                  <span className="text-muted-foreground tabular-nums">{ds.conversations.length - byClaude}</span>
-                </li>
-              </ul>
-            </div>
+              </tbody>
+            </table>
           </div>
         )}
-      </section>
-
-      <section className="mb-6 rounded-xl border bg-background p-5">
-        <SectionTitle>Collect real data</SectionTitle>
-        <p className="mb-3 text-sm text-muted-foreground">
-          Run these in a terminal from the project folder. Each writes a CSV to <code className="rounded bg-muted px-1 text-xs">data/real/</code> that you upload below. Setup
-          steps for each source are in <code className="rounded bg-muted px-1 text-xs">data/sources/README.md</code>.
+        <p className="mt-4 text-xs text-muted-foreground">
+          Each conversation is screened for whether it&apos;s about finding a photo, then analyzed for what the user remembered and forgot, how they searched, why it failed,
+          and what they did instead. Only analyzed conversations appear in insights.
         </p>
-        <ul className="grid gap-2 text-sm sm:grid-cols-2">
-          {[
-            ["App Store", "npm run collect:appstore", "Apple's public reviews feed. No setup."],
-            ["Google Photos Community", "npm run collect:community", "Fetches the threads listed in data/sources/community-urls.txt."],
-            ["Reddit", "npm run collect:reddit", "Official API. Needs a free Reddit app ID and secret in .env.local."],
-            ["Play Store", "manual", "No public API. Copy reviews into data/sources/play-store-template.csv."],
-          ].map(([name, cmd, note]) => (
-            <li key={name} className="rounded-lg border p-3">
-              <div className="font-medium">{name}</div>
-              <code className="mt-1 inline-block rounded bg-muted px-1.5 py-0.5 text-xs">{cmd}</code>
-              <div className="mt-1 text-xs text-muted-foreground">{note}</div>
-            </li>
-          ))}
-        </ul>
       </section>
 
+      {!readOnly && (
       <section className="mb-6 rounded-xl border bg-background p-5">
-        <SectionTitle>Upload CSV</SectionTitle>
+        <SectionTitle>Import conversations</SectionTitle>
         <p className="mb-3 text-sm text-muted-foreground">
-          Expected columns: <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{EXPECTED_COLUMNS.join(", ")}</code>. Only{" "}
-          <code className="rounded bg-muted px-1 text-xs">text</code> is required. Uploaded rows go through the same pipeline: screening, extraction, then
-          grouping into problems. {claude ? "Up to 200 rows per upload with Claude." : "Without an API key, rows are analyzed with keyword rules (lower confidence)."}{" "}
-          For a hand-collected file, start from{" "}
-          <code className="rounded bg-muted px-1 text-xs">data/sources/play-store-template.csv</code>.
+          Upload a CSV with the columns <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{EXPECTED_COLUMNS.join(", ")}</code>. Only{" "}
+          <code className="rounded bg-muted px-1 text-xs">text</code> is required.
         </p>
         <CsvUpload />
       </section>
+      )}
 
       <section className="rounded-xl border bg-background p-5">
-        <SectionTitle>Uploaded datasets</SectionTitle>
-        {groups.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No uploads yet.</p>
+        <SectionTitle>Imports</SectionTitle>
+        {files.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No imports yet.</p>
         ) : (
           <ul className="divide-y">
-            {groups.map((g) => (
-              <li key={g.name} className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm">
+            {files.map((f) => (
+              <li key={f.name} className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm">
                 <div>
-                  <div className="font-medium">{g.name}</div>
+                  <div className="font-medium">{f.name}</div>
                   <div className="text-xs text-muted-foreground">
-                    {new Date(g.createdAt).toLocaleString()} · {g.count} conversations · {g.relevant} retrieval-related · analyzed by{" "}
-                    {g.modes.map((m) => (m === "claude" ? "Claude" : "keyword rules")).join(" + ")}
+                    Imported {new Date(f.createdAt).toLocaleDateString()} · {f.count.toLocaleString()} conversations · {f.analyzed.toLocaleString()} analyzed
                   </div>
                 </div>
-                <DeleteImportButton ids={g.ids} />
+                {!readOnly && <DeleteImportButton ids={f.ids} />}
               </li>
             ))}
           </ul>

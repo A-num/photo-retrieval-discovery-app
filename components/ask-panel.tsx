@@ -159,10 +159,7 @@ export function AskPanel({ conversationCount }: { conversationCount: number }) {
     <div className="space-y-5">
       {turns.length === 0 && (
         <div className="rounded-xl border border-dashed bg-background p-5">
-          <p className="text-sm text-muted-foreground">
-            Ask about what users remember, why search fails, what they do instead, or how a segment compares. Answers are computed from {conversationCount}{" "}
-            collected conversations.
-          </p>
+          <p className="text-sm text-muted-foreground">Try a question:</p>
           <div className="mt-3 flex flex-wrap gap-1.5">
             {EXAMPLES.map((ex) => (
               <button

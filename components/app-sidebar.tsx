@@ -39,7 +39,7 @@ export function AppSidebar() {
         ))}
       </nav>
       <p className="hidden px-5 pt-8 text-xs leading-relaxed text-muted-foreground md:block">
-        Research prototype on Google Photos retrieval, built from public reviews and forum posts.
+        Google Photos · Retrieval research
       </p>
     </aside>
   );

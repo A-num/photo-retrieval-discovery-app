@@ -203,9 +203,7 @@ export function askLocal(question: string, ds: Dataset): AskAnswer {
       `Matched ${n} retrieval conversations${scope || ""}`,
       `Counted ${intent === "remember" || intent === null ? "what users remembered" : intent === "forget" ? "what users forgot" : intent === "workaround" ? "workarounds" : intent === "outcome" ? "outcomes" : intent === "problems" ? "problem clusters" : "failure types"}`,
     ],
-    caveats: keywordMode
-      ? "Answered by keyword match without an LLM (no API key). Results may include loosely related conversations."
-      : "Computed with fixed rules, without an LLM (no API key). Follow-up questions and open-ended analysis need ANTHROPIC_API_KEY.",
+    caveats: keywordMode ? "Matched by keywords, so some conversations may be only loosely related." : undefined,
   };
 }
 
@@ -218,6 +216,7 @@ export async function ask(question: string, ds: Dataset, history: AskTurn[] = []
     return await askAgent(question, ds, history);
   } catch (err) {
     const local = askLocal(question, ds);
-    return { ...local, caveats: `Claude request failed (${(err as Error).message}); answered with local rules instead. ${local.caveats ?? ""}` };
+    console.error("Ask AI agent failed; using the standard analysis", err);
+    return local;
   }
 }

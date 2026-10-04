@@ -57,21 +57,28 @@ export function CsvUpload() {
         />
         <Button size="sm" disabled={!file || busy} onClick={upload}>
           {busy ? <Loader2 className="animate-spin" /> : <Upload />}
-          {busy ? "Analyzing…" : "Upload & analyze"}
+          {busy ? "Importing…" : "Import"}
         </Button>
       </div>
       {error && <p className="text-sm text-destructive">{error}</p>}
       {result && (
         <div className="rounded-md bg-muted p-3 text-sm">
-          Imported <b>{result.imported}</b> conversations; <b>{result.relevant}</b> are retrieval-related (
-          {result.mode === "claude" ? "analyzed by Claude" : "analyzed with keyword rules"}). They now appear on the Dashboard, Problems and Conversations pages.
+          {result.mode === "claude" ? (
+            <>
+              Imported <b>{result.imported}</b> conversations. <b>{result.relevant}</b> are about photo retrieval and now appear in insights.
+            </>
+          ) : (
+            <>
+              Imported <b>{result.imported}</b> conversations. They&apos;ll appear in insights once they&apos;ve been analyzed.
+            </>
+          )}
           {result.skipped.length > 0 && <div className="mt-1 text-muted-foreground">Skipped {result.skipped.length} rows with empty text.</div>}
           {result.missingColumns.length > 0 && (
             <div className="mt-1 text-muted-foreground">Missing optional columns: {result.missingColumns.join(", ")}.</div>
           )}
           {result.errors.length > 0 && (
             <div className="mt-1 text-amber-700 dark:text-amber-300">
-              {result.errors.length} rows fell back to keyword analysis after a Claude error: {result.errors[0].message}
+              {result.errors.length} conversations couldn&apos;t be analyzed yet and are awaiting analysis.
             </div>
           )}
         </div>

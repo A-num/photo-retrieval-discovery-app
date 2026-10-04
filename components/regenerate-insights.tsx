@@ -21,23 +21,19 @@ export function RegenerateInsights({ enabled, regenerated }: { enabled: boolean;
   }
 
   if (!enabled) {
-    return (
-      <span className="text-xs text-muted-foreground">
-        Showing starting hypotheses. Set ANTHROPIC_API_KEY to rewrite them from the collected evidence.
-      </span>
-    );
+    return null;
   }
   return (
     <div className="flex items-center gap-2">
       {error && <span className="text-xs text-destructive">{error}</span>}
       {regenerated && (
         <Button variant="ghost" size="sm" disabled={pending} onClick={() => run("DELETE")}>
-          Restore hypotheses
+          Reset
         </Button>
       )}
       <Button variant="outline" size="sm" disabled={pending} onClick={() => startTransition(() => run("POST"))}>
         <RefreshCw className={pending ? "animate-spin" : ""} />
-        {pending ? "Synthesizing…" : "Regenerate insights with Claude"}
+        {pending ? "Refreshing…" : "Refresh insights"}
       </Button>
     </div>
   );

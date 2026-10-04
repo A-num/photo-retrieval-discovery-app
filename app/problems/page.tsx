@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ProblemsPage() {
   const ds = await getDataset();
-  const problems = summarizeAllProblems(ds);
+  const problems = summarizeAllProblems(ds).filter((p) => p.evidenceCount > 0);
   const unassigned = Object.values(ds.analyses).filter((a) => a.retrievalRelevant && !a.problemId).length;
 
   if (ds.conversations.length === 0) {

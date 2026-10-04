@@ -23,9 +23,8 @@ export default async function AskPage() {
       <header className="mb-5">
         <h1 className="text-2xl font-semibold tracking-tight">Ask AI</h1>
         <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-          {claude
-            ? "A research analyst for Google Photos retrieval. It queries the collected conversations, does the counting, and answers briefly. Ask follow-ups to dig deeper."
-            : "No ANTHROPIC_API_KEY is set, so questions are answered with fixed rules over the analysis. Set a key for the AI analyst, which handles open-ended questions and follow-ups."}
+          Ask about what users remember, why retrieval fails, and what they do instead. Every answer is computed from the analyzed conversations
+          {claude ? ", and you can ask follow-ups to dig deeper." : "."}
         </p>
       </header>
       <AskPanel conversationCount={ds.conversations.length} />

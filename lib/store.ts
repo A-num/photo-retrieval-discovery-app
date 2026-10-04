@@ -5,6 +5,9 @@ import { PROBLEM_HYPOTHESES } from "@/data/problem-clusters";
 
 // Local JSON persistence for collected conversations, their analyses and regenerated insights.
 // Swap this module for a Supabase/Postgres implementation without touching callers.
+//
+// Deployed copies (e.g. on Vercel) run read-only from data/snapshot.json, a committed copy of the
+// dataset made with `npm run snapshot`. Locally, a fresh checkout also starts from the snapshot.
 
 export interface ImportBatch {
   id: string;
@@ -25,21 +28,51 @@ interface StoreFile {
 
 const EMPTY: StoreFile = { imports: [], conversations: [], analyses: {} };
 
+/** Read-only on Vercel, or when DISCOVERY_READ_ONLY=true: the app serves the snapshot and blocks changes. */
+export function isReadOnly() {
+  return process.env.DISCOVERY_READ_ONLY === "true" || process.env.VERCEL === "1";
+}
+
+export class ReadOnlyError extends Error {
+  constructor() {
+    super("This copy of the app is read-only.");
+  }
+}
+
 function storePath() {
   return process.env.DISCOVERY_STORE_PATH ?? path.join(process.cwd(), ".data", "store.json");
 }
 
-async function readStore(): Promise<StoreFile> {
+let snapshotCache: StoreFile | null = null;
+
+async function readSnapshot(): Promise<StoreFile | null> {
+  if (snapshotCache) return snapshotCache;
   try {
-    const raw = await fs.readFile(/*turbopackIgnore: true*/ storePath(), "utf8");
-    return { ...EMPTY, ...(JSON.parse(raw) as StoreFile) };
+    // Static path so Next.js file tracing bundles the snapshot with the deployed functions.
+    const raw = await fs.readFile(path.join(process.cwd(), "data", "snapshot.json"), "utf8");
+    snapshotCache = { ...EMPTY, ...(JSON.parse(raw) as StoreFile) };
+    return snapshotCache;
   } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === "ENOENT") return structuredClone(EMPTY);
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") return null;
     throw err;
   }
 }
 
+async function readStore(): Promise<StoreFile> {
+  if (isReadOnly()) return (await readSnapshot()) ?? structuredClone(EMPTY);
+  try {
+    const raw = await fs.readFile(/*turbopackIgnore: true*/ storePath(), "utf8");
+    return { ...EMPTY, ...(JSON.parse(raw) as StoreFile) };
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+    // A fresh local checkout starts from the committed snapshot (an explicit store path starts empty).
+    const seed = process.env.DISCOVERY_STORE_PATH ? null : await readSnapshot();
+    return seed ? structuredClone(seed) : structuredClone(EMPTY);
+  }
+}
+
 async function writeStore(store: StoreFile) {
+  if (isReadOnly()) throw new ReadOnlyError();
   const file = storePath();
   await fs.mkdir(/*turbopackIgnore: true*/ path.dirname(file), { recursive: true });
   const tmp = `${file}.tmp`;
@@ -47,7 +80,26 @@ async function writeStore(store: StoreFile) {
   await fs.rename(/*turbopackIgnore: true*/ tmp, file);
 }
 
+/**
+ * The dataset behind every insight page: only conversations with a full (LLM) analysis.
+ * Conversations that only have the keyword-rule fallback are treated as awaiting analysis.
+ */
 export async function getDataset(): Promise<Dataset> {
+  const full = await getFullDataset();
+  const analyzed = full.conversations.filter((c) => isAnalyzed(full.analyses[c.id]));
+  return {
+    ...full,
+    conversations: analyzed,
+    analyses: Object.fromEntries(analyzed.map((c) => [c.id, full.analyses[c.id]])),
+  };
+}
+
+export function isAnalyzed(a: ConversationAnalysis | undefined): boolean {
+  return !!a && a.analyzedBy !== "heuristic";
+}
+
+/** Every collected conversation, including those still awaiting analysis. */
+export async function getFullDataset(): Promise<Dataset> {
   const store = await readStore();
   const problems = store.problems ?? PROBLEM_HYPOTHESES;
   const opportunityByProblem = new Map(problems.map((p) => [p.id, p.opportunity.title]));

@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { hasClaude } from "@/lib/ai/client";
 import { synthesizeProblems } from "@/lib/ai/synthesize";
-import { getDataset, saveProblems } from "@/lib/store";
+import { getDataset, isReadOnly, saveProblems } from "@/lib/store";
 
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 /** Regenerate problem statements & opportunity areas with Claude. */
 export async function POST() {
+  if (isReadOnly()) return NextResponse.json({ error: "This copy of the app is read-only." }, { status: 403 });
   if (!hasClaude()) {
     return NextResponse.json(
       { error: "Set ANTHROPIC_API_KEY to regenerate insights with Claude." },
@@ -24,6 +25,7 @@ export async function POST() {
 
 /** Discard regenerated insights and go back to the starting hypotheses. */
 export async function DELETE() {
+  if (isReadOnly()) return NextResponse.json({ error: "This copy of the app is read-only." }, { status: 403 });
   await saveProblems(undefined);
   return NextResponse.json({ ok: true });
 }

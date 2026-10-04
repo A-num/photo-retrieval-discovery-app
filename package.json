@@ -13,7 +13,8 @@
     "collect:community": "node scripts/collect/community.mjs",
     "collect:reddit": "node --env-file-if-exists=.env.local scripts/collect/reddit.mjs",
     "analyze": "node --env-file-if-exists=.env.local --import tsx scripts/analyze.ts",
-    "apply-analyses": "node --import tsx scripts/apply-analyses.ts"
+    "apply-analyses": "node --import tsx scripts/apply-analyses.ts",
+    "snapshot": "node scripts/snapshot.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",

@@ -47,6 +47,16 @@ npm run analyze -- data/real/app-store-reviews.csv data/real/community-threads.c
 
 Without `ANTHROPIC_API_KEY`, real data is analyzed with keyword rules. In a hand-checked sample of App Store reviews, those rules were right only 35–40% of the time about which reviews describe a retrieval problem, and the app shows a warning while that's the case. Use Claude for findings you intend to present.
 
+## Deploying (Vercel, free Hobby plan)
+
+The deployed app is a read-only copy of the dataset. It reads `data/snapshot.json` (committed) instead of `.data/store.json` (local, git-ignored), hides import and remove controls, and refuses writes. Read-only mode switches on automatically on Vercel, or locally with `DISCOVERY_READ_ONLY=true`.
+
+1. After analyzing new data locally, refresh the snapshot: `npm run snapshot`, then commit `data/snapshot.json`.
+2. Push to GitHub.
+3. On vercel.com: **Add New → Project**, import the repository, **Deploy**. No settings or environment variables are needed.
+
+Leave `ANTHROPIC_API_KEY` unset on a public deployment: Ask AI then uses the built-in engine, and visitors' questions don't cost you anything.
+
 ## Pages
 
 - **Dashboard**: headline metrics, what users remember, where retrieval breaks, top problems, and opportunity areas.

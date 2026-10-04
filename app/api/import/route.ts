@@ -2,14 +2,15 @@ import { NextResponse } from "next/server";
 import { parseConversationsCsv } from "@/lib/csv";
 import { analyzeConversations } from "@/lib/ai/pipeline";
 import { hasClaude } from "@/lib/ai/client";
-import { addImport, getDataset } from "@/lib/store";
+import { addImport, getDataset, isReadOnly } from "@/lib/store";
 
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 const MAX_ROWS_CLAUDE = 200;
 const MAX_ROWS_LOCAL = 5000;
 
 export async function POST(req: Request) {
+  if (isReadOnly()) return NextResponse.json({ error: "This copy of the app is read-only." }, { status: 403 });
   const form = await req.formData();
   const file = form.get("file");
   if (!(file instanceof File)) {

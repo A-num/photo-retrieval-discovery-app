@@ -26,7 +26,7 @@ export function EvidenceCard({ conversation: c, note }: { conversation: Conversa
             View source <ExternalLink className="size-3" />
           </a>
         ) : (
-          <span className="text-muted-foreground">No link to the individual post (source feed doesn&apos;t provide one)</span>
+          <span className="text-muted-foreground">No direct link available</span>
         )}
         <Link href={`/conversations/${c.id}`} className="text-muted-foreground hover:text-foreground hover:underline">
           {note ?? "Full analysis →"}
